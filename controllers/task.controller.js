@@ -11,18 +11,38 @@ exports.createTask = async (req, res) => {
 
     try {
         const { title, description, dueDate } = req.body;
+
+        // Ajuste para la fecha
+        let adjustedDueDate = dueDate;
+        if (dueDate) {
+            // Crear fecha en UTC para evitar problemas de zona horaria
+            const date = new Date(dueDate);
+
+            // Verificar si la fecha es válida
+            if (isNaN(date.getTime())) {
+                return res.status(400).json({ error: 'Fecha no válida' });
+            }
+
+            // Ajustar a UTC (elimina el desfase de zona horaria)
+            adjustedDueDate = new Date(Date.UTC(
+                date.getFullYear(),
+                date.getMonth(),
+                date.getDate()
+            ));
+        }
+
         const task = await Task.create({
             title,
             description,
-            dueDate,
+            dueDate: adjustedDueDate,
             userId: req.user.id
         });
+
         res.status(201).json(task);
     } catch (err) {
         res.status(400).json({ error: err.message });
     }
 };
-
 exports.getTasks = async (req, res) => {
     const { status, dueDate } = req.query;
     const where = { userId: req.user.id };
@@ -38,7 +58,7 @@ exports.getTaskById = async (req, res) => {
         const task = await Task.findOne({
             where: { id: req.params.id, userId: req.user.id }
         });
-        if (!task) return res.status(404).json({ error: 'Task not found' });
+        if (!task) return res.status(404).json({ error: 'Tarea no encontrada' });
         res.json(task);
     } catch (err) {
         res.status(400).json({ error: err.message });
@@ -86,14 +106,14 @@ exports.updateTask = async (req, res) => {
 
     try {
         const task = await Task.findOne({ where: { id: req.params.id, userId: req.user.id } });
-        if (!task) return res.status(404).json({ error: 'Task not found' });
-        if (task.status === 'completada') return res.status(400).json({ error: 'Task is completed and cannot be modified' });
+        if (!task) return res.status(404).json({ error: 'Tarea no encontrada' });
+        if (task.status === 'completada') return res.status(402).json({ error: 'Las tareas completadas no pueden editarse' });
 
         const { title, description, status, dueDate } = req.body;
         if (status === 'en progreso' && task.status === 'en progreso') await task.update({ title, description, status, dueDate });
-        if (status === 'pendiente' && task.status =='en progreso') return res.status(400).json({ error: 'Cannot revert to pendiente' });
+        if (status === 'pendiente' && task.status =='en progreso') return res.status(402).json({ error: 'No se puede revrtir a pendiente' });
         if(status === 'pendiente' && task.status ==='pendiente')  await task.update({ title, description, status, dueDate });
-        if(status === 'completada' && task.status ==='pendiente')  return res.status(400).json({ error: 'Can only move to completada from en progreso' });
+        if(status === 'completada' && task.status ==='pendiente')  return res.status(402).json({ error: 'Solo puede ser completada si estuvo en progreso' });
 
         await task.update({ title, description, status, dueDate });
         res.json(task);
@@ -105,7 +125,7 @@ exports.updateTask = async (req, res) => {
 exports.completeTask = async (req, res) => {
     const task = await Task.findOne({ where: { id: req.params.id, userId: req.user.id } });
     if (!task) return res.status(404).json({ error: 'Task not found' });
-    if (task.status !== 'en progreso') return res.status(400).json({ error: 'Only tasks in progress can be completed' });
+    if (task.status !== 'en progreso') return res.status(400).json({ error: 'Solo tareas en progreso pueden ser completadas' });
     task.status = 'completada';
     await task.save();
     res.json(task);
@@ -114,31 +134,36 @@ exports.completeTask = async (req, res) => {
 exports.deleteTask = async (req, res) => {
     const task = await Task.findOne({ where: { id: req.params.id, userId: req.user.id } });
     if (!task) return res.status(404).json({ error: 'Task not found' });
-    if (task.status !== 'completada') return res.status(400).json({ error: 'Only completed tasks can be deleted' });
+    if (task.status !== 'completada') return res.status(402).json({ error: 'Solo tareas completadas pueden ser eliminadas' });
     await task.destroy();
     res.json({ message: 'Task deleted' });
 };
 exports.getTasksByDate = async (req, res) => {
     try {
-        const { dueDate } = req.params; // Recibe la fecha desde los parámetros de la ruta (formato ISO)
+        const { dueDate } = req.params;
 
         // Verifica si la fecha es válida
         if (isNaN(Date.parse(dueDate))) {
             return res.status(400).json({ error: 'Fecha no válida' });
         }
 
-        // Busca las tareas cuya fecha de vencimiento coincida con la fecha proporcionada
+        const date = new Date(dueDate);
+        const nextDay = new Date(date);
+        nextDay.setDate(date.getDate() + 1);
+
+        // Busca las tareas entre el inicio y fin del día
         const tasks = await Task.findAll({
             where: {
                 userId: req.user.id,
                 dueDate: {
-                    [Op.eq]: new Date(dueDate) // Filtra tareas con la fecha exacta
+                    [Op.gte]: date, // Mayor o igual que el inicio del día
+                    [Op.lt]: nextDay // Menor que el inicio del día siguiente
                 }
             }
         });
 
         if (tasks.length === 0) {
-            return res.status(404).json({ error: 'No tasks found for the given date' });
+            return res.status(404).json({ error: 'No hay tareas para la fecha escogida' });
         }
 
         res.json(tasks);
