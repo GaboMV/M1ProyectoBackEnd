@@ -2,8 +2,8 @@ const { validationResult } = require('express-validator');
 const { Task } = require('../models');
 const { Op } = require('sequelize');
 
+
 exports.createTask = async (req, res) => {
-    // Comprobar si hay errores de validación
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
@@ -12,18 +12,14 @@ exports.createTask = async (req, res) => {
     try {
         const { title, description, dueDate } = req.body;
 
-        // Ajuste para la fecha
         let adjustedDueDate = dueDate;
         if (dueDate) {
-            // Crear fecha en UTC para evitar problemas de zona horaria
             const date = new Date(dueDate);
 
-            // Verificar si la fecha es válida
             if (isNaN(date.getTime())) {
                 return res.status(400).json({ error: 'Fecha no válida' });
             }
 
-            // Ajustar a UTC (elimina el desfase de zona horaria)
             adjustedDueDate = new Date(Date.UTC(
                 date.getFullYear(),
                 date.getMonth(),
@@ -142,7 +138,6 @@ exports.getTasksByDate = async (req, res) => {
     try {
         const { dueDate } = req.params;
 
-        // Verifica si la fecha es válida
         if (isNaN(Date.parse(dueDate))) {
             return res.status(400).json({ error: 'Fecha no válida' });
         }
@@ -151,13 +146,12 @@ exports.getTasksByDate = async (req, res) => {
         const nextDay = new Date(date);
         nextDay.setDate(date.getDate() + 1);
 
-        // Busca las tareas entre el inicio y fin del día
         const tasks = await Task.findAll({
             where: {
                 userId: req.user.id,
                 dueDate: {
-                    [Op.gte]: date, // Mayor o igual que el inicio del día
-                    [Op.lt]: nextDay // Menor que el inicio del día siguiente
+                    [Op.gte]: date,
+                    [Op.lt]: nextDay
                 }
             }
         });
