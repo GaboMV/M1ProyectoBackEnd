@@ -1,3 +1,4 @@
+
 {
   "development": {
     "username": "postgres",
@@ -9,13 +10,17 @@
   "test": {
     "username": "postgres",
     "password": "123",
-    "database": "tarea4_bd",
+    "database": "tarea4_bd_h9io",
     "host": "127.0.0.1",
     "dialect": "postgres"
   },
   "production": {
-    "use_env_variable": "DATABASE_URL",
-    "dialect": "postgres"
+    "username": "tarea4_bd_h9io_usertarea4_bd_h9io_user",
+    "password": "cBoP154ou9ysXk4GU9H4Czixoo7vcTE3",
+    "database": "tarea4_bd_h9io",
+    "host": "dpg-cvr9vjur433s73b6i0s0-a",
+    "dialect": "postgres",
+
   }
 }
 
