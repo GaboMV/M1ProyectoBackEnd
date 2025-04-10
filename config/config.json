@@ -19,8 +19,7 @@
     "password": "cBoP154ou9ysXk4GU9H4Czixoo7vcTE3",
     "database": "tarea4_bd_h9io",
     "host": "dpg-cvr9vjur433s73b6i0s0-a",
-    "dialect": "postgres",
-
+    "dialect": "postgres"
   }
 }
 
