@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: M1ProyectoBackend
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        value: tu_clave_super_secreta
+      - key: DB_HOST
+        fromDatabase:
+          name: tarea-4bd
+          property: host
+      - key: DB_NAME
+        fromDatabase:
+          name: tarea-4bd
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: tarea-4bd
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: tarea-4bd
+          property: password
+      - key: DB_PORT
+        fromDatabase:
+          name: tarea-4bd
+          property: port
+
+databases:
+  - name: tarea-4bd
+    databaseName: tarea_4bd
+    user: postgres
+    password: 123
+    plan: free
